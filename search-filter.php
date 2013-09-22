@@ -5,7 +5,7 @@ Plugin URI: http://www.designsandcode.com/447/wordpress-search-filter-plugin-for
 Description: Search and Filtering system for Pages, Posts, Categories, Tags and Taxonomies
 Author: Designs & Code
 Author URI: http://www.designsandcode.com/
-Version: 1.0.3
+Version: 1.1.0
 Text Domain: searchandfilter
 License: GPLv2
 */
@@ -16,7 +16,7 @@ License: GPLv2
 * Set up Plugin Globals
 */
 if (!defined('SEARCHANDFILTER_VERSION_NUM'))
-    define('SEARCHANDFILTER_VERSION_NUM', '1.0.3');
+    define('SEARCHANDFILTER_VERSION_NUM', '1.1.0');
 	
 if (!defined('SEARCHANDFILTER_THEME_DIR'))
     define('SEARCHANDFILTER_THEME_DIR', ABSPATH . 'wp-content/themes/' . get_template());
@@ -65,6 +65,7 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 		{
 			// Set up reserved taxonomies
 			$this->frmreserved = array(SEARCHANDFILTER_FPRE."category", SEARCHANDFILTER_FPRE."search", SEARCHANDFILTER_FPRE."post_tag", SEARCHANDFILTER_FPRE."submitted");
+			$this->frmqreserved = array(SEARCHANDFILTER_FPRE."category_name", SEARCHANDFILTER_FPRE."s", SEARCHANDFILTER_FPRE."tag", SEARCHANDFILTER_FPRE."submitted"); //same as reserved
 			
 			// Add shortcode support for widgets  
 			add_shortcode('searchandfilter', array($this, 'shortcode'));  
@@ -99,92 +100,213 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 			extract(shortcode_atts(array(
 				'search' => 1,
 				'taxonomies' => null,
-				'submitlabel' => "Submit"
+				'submitlabel' => "Submit",
+				'type' => "",
+				'label' => "default",
+				'class' => ""
 			), $atts));
+			
+			
 			$taxonomies = explode(",",$taxonomies);
 			$this->taxonomylist = $taxonomies;
+			$notaxonomies = count($taxonomies);
+			
+			//set default types for each taxonomy
+			$types = explode(",",$type);
+			if(!is_array($types))
+			{
+				$types = array();
+			}
+			
+			$labels = explode(",",$label);
+			$showlabels = true;
+			$labeldefault = "name";
+			
+			if(!is_array($labels))
+			{
+				$labels = array("default");
+			}
+			
+			for($i=0; $i<$notaxonomies; $i++)
+			{//loop through all taxonomies
+				
+				//set up types
+				if(isset($types[$i]))
+				{
+				 
+					if(($types[$i]=="select")||($types[$i]=="checkbox")||($types[$i]=="radio"))
+					{
+						$types[$i] =  $types[$i];
+					}
+					else
+					{
+						$types[$i] =  "select";
+					}
+				}
+				else
+				{
+					$types[$i] =  "select";
+				}
+				
+				
+				
+				if(isset($labels[0]))
+				{//these means at least one option has been set
+					
+					if(($labels[0]=="0")||($labels[0]=="none"))
+					{
+						if($i!=0)
+						{
+							$labels[$i] = ""; //then set all fields to blank ("no label").
+						}
+					}
+					else if($labels[0]=="default")
+					{
+						$labels[$i] =  $labeldefault;
+					}
+					else
+					{//then one or more options were passed, and the value wasn't "0" or "none"
+						
+						if(isset($labels[$i]))
+						{							
+							if(($labels[$i]=="name")||($labels[$i]=="singular_name")||($labels[$i]=="search_items")||($labels[$i]=="all_items"))
+							{//enforce the use of only above mentioned labels, don't support the other ones or just any data supplied by the user
+							
+								$labels[$i] =  $labels[$i];
+							}
+							else if($labels[$i]=="")
+							{//if it is blank no label should be shown for this taxonomy
+								
+								$labels[$i] =  "";
+							}
+							else
+							{//this normally means a typos or unrecognised type, so use default
+							
+								$labels[$i] =  $labeldefault;
+							}
+						}
+						else
+						{
+							$labels[$i] =  $labeldefault;
+						}
+					}
+				}
+				else
+				{//then it has been completely omitted so use default display
+					$labels[$i] =  $labeldefault;
+				}
+				
+				
+			}
+			
+			//if we have a value of 0 or "none" in teh first part of the array, the we need to set it to blanks so it doesn't display
+			if(isset($labels[0]))
+			{
+				if(($labels[0]=="0")||($labels[0]=="none"))
+				{
+					$labels[0] = ""; //then set all fields to blank ("no label").
+				}
+			}
 			
 			//set all form defaults / dropdowns etc
 			$this->set_defaults();
-			
-			return $this->get_search_filter_form($search, $submitlabel, $taxonomies);
+						
+			return $this->get_search_filter_form($search, $submitlabel, $taxonomies, $types, $labels, $class);
 		}
 		
 		/* 
 		 * check to set defaults - to be called after the shortcodes have been init so we can grab the wanted list of taxonomies
 		*/
-
 		public function set_defaults()
 		{
-			//var_dump( $this->taxonomylist);
+			global $wp_query;
+			/*var_dump($wp_query->query['category_name']);
+			var_dump($wp_query->query['tag']);*/
+			//var_dump($wp_query->query);
 			
-			if(is_category())
-			{
-				$category = get_category( get_query_var( 'cat' ) );
-				$this->defaults[SEARCHANDFILTER_FPRE.'category'] = $category->cat_ID;
-			}
-			else
-			{
-				$this->defaults[SEARCHANDFILTER_FPRE.'category'] = 0;
-			}
+			$categories = array();
+			//if(is_category())
+			//{
+				if(isset($wp_query->query['category_name']))
+				{
+					
+					$category_params = explode("+",esc_attr($wp_query->query['category_name']));
+					
+					foreach($category_params as $category_param)
+					{
+						$category = get_category_by_slug( $category_param );
+						if(isset($category->cat_ID))
+						{
+							$categories[] = $category->cat_ID;
+						}
+					}
+				}
+			//}
+			$this->defaults[SEARCHANDFILTER_FPRE.'category'] = $categories;
+			
 			
 			//grab search term for prefilling search input
-			if(isset($_GET['s']))
-			{
-				$this->searchterm = esc_attr($_GET['s']);
+			if(isset($wp_query->query['s']))
+			{//!"£$%^&*()
+				$this->searchterm = get_search_query();
 			}
 			
 			//check to see if tag is set
-			if(isset($_GET['tag']))
-			{//Else check the URL for the tag attribute
-				$tagslug = esc_attr($_GET['tag']);
-				$tagobj = get_term_by('slug',$tagslug,'post_tag');
-				$this->defaults[SEARCHANDFILTER_FPRE.'post_tag'] = 0;
-				if(isset($tagobj->term_id))
-				{
-					$this->defaults[SEARCHANDFILTER_FPRE.'post_tag'] = $tagobj->term_id;
-				}
-			}
-			else
-			{//else it is still possible that the URL could be website.com/tag/testtag - 
-				if(is_tag())
-				{
-					$tag = get_term_by("slug",get_query_var( 'tag' ), "post_tag");
-					$this->defaults[SEARCHANDFILTER_FPRE.'post_tag'] = $tag->term_id;
-				}
-				else
-				{
-					$this->defaults[SEARCHANDFILTER_FPRE.'post_tag'] = 0;
-				}
-			}
 			
-			//loop through all the gets
-			foreach($_GET as $key=>$val)
+			$tags = array();
+			//if(is_tag())
+			//{
+				if(isset($wp_query->query['tag']))
+				{
+					$tag_params = explode("+",esc_attr($wp_query->query['tag']));
+					
+					foreach($tag_params as $tag_param)
+					{
+						$tag = get_term_by("slug",$tag_param, "post_tag");
+						if(isset($tag->term_id))
+						{
+							$tags[] = $tag->term_id;
+						}
+					}
+				}
+			//}
+			$this->defaults[SEARCHANDFILTER_FPRE.'post_tag'] = $tags;
+			
+			//loop through all the query vars
+			foreach($wp_query->query as $key=>$val)
 			{
-				if(!in_array(SEARCHANDFILTER_FPRE.$key, $this->frmreserved))
+				if(!in_array(SEARCHANDFILTER_FPRE.$key, $this->frmqreserved))
 				{//make sure the get is not a reserved get as they have already been handled above
 					
 					//now check it is a desired key
 					if(in_array($key, $this->taxonomylist))
 					{
-						$taxslug = esc_attr($val);
-						$taxobj = get_term_by('slug',$taxslug,$key);
-						$this->defaults[SEARCHANDFILTER_FPRE.$key] = 0;
-						if(isset($taxobj->term_id))
+						$taxslug = ($val);
+						$tax_params = explode("+",esc_attr($taxslug));
+						
+						foreach($tax_params as $tax_param)
 						{
-							$this->defaults[SEARCHANDFILTER_FPRE.$key] = $taxobj->term_id;
+							$tax = get_term_by("slug",$tax_param, $key);
+							
+							if(isset($tax->term_id))
+							{
+								$taxs[] = $tax->term_id;
+							}
 						}
+						
+						$this->defaults[SEARCHANDFILTER_FPRE.$key] = $taxs;
 					}
 				}
 			}
 			
+			
 			//now we may be on a taxonomy page
-			if(is_tax())
+			/*if(is_tax())
 			{
 				$taxobj = get_queried_object();
 				$taxid = $taxobj->term_id;
 				$this->defaults[SEARCHANDFILTER_FPRE.$taxobj->taxonomy] = $taxobj->term_id;
-			}
+			}*/
 			
 		}
 		
@@ -206,26 +328,44 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 			/* CATEGORIES */
 			if((isset($_POST[SEARCHANDFILTER_FPRE.'category']))&&($this->has_search_posted))
 			{
-				$this->defaults[SEARCHANDFILTER_FPRE.'category'] = esc_attr($_POST[SEARCHANDFILTER_FPRE.'category']);
-				$catobj = get_category($this->defaults[SEARCHANDFILTER_FPRE.'category']);
+				$the_post_cat = ($_POST[SEARCHANDFILTER_FPRE.'category']);
 				
-				if(isset($catobj->slug))
+				//make the post an array for easy looping
+				if(!is_array($_POST[SEARCHANDFILTER_FPRE.'category']))
 				{
-					// deal with category firstm so we can build a url like:
-					// site.com/category/products/?tag=atag&s=searchterm
-					// rather than:
-					// site.com/?category_name=products&tag=atag&s=searchterm					
+					$post_cat[] = $the_post_cat;
+				}
+				else
+				{
+					$post_cat = $the_post_cat;
+				}
+				$catarr = array();
+				
+				foreach ($post_cat as $cat)
+				{
+					$cat = esc_attr($cat);
+					$catobj = get_category($cat);
 					
+					if(isset($catobj->slug))
+					{
+						$catarr[] = $catobj->slug;
+						//$catarr[] = $catobj->term_id;
+					}
+				}
+				
+				if(count($catarr)>0)
+				{
+					$categories = implode("+",$catarr);
+
 					if(get_option('permalink_structure'))
-					{//if has permalinks use nice formatting as above
-						
-						$catrel = trim(str_replace(home_url(), "", get_category_link( $catobj->term_id )), "/")."/"; //get full category link, remvoe the home url to get relative, trim traling slashed, the append slash at the end
-						$this->urlparams .= $catrel;// old - not reliable - "category/".$catobj->slug."/";
-						
+					{
+						//$catrel = trim(str_replace(home_url(), "", get_category_link()), "/").$categories."/"; //get full category link, remvoe the home url to get relative, trim traling slashed, the append slash at the end
+						$category_base = (get_option( 'category_base' )=="") ? "category" : get_option( 'category_base' );
+						$category_path = $category_base."/".$categories."/";
+						$this->urlparams .= $category_path;
 					}
 					else
-					{//otherwise stick everything in to the query string and let wp deal with it
-					
+					{
 						if(!$this->hasqmark)
 						{
 							$this->urlparams .= "?";
@@ -235,8 +375,7 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 						{
 							$this->urlparams .= "&";
 						}
-						
-						$this->urlparams .= "category_name=".$catobj->slug;
+						$this->urlparams .= "category_name=".$categories;
 					}
 				}
 			}
@@ -244,7 +383,7 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 			/* SEARCH BOX */
 			if((isset($_POST[SEARCHANDFILTER_FPRE.'search']))&&($this->has_search_posted))
 			{
-				$this->searchterm = urlencode($_POST[SEARCHANDFILTER_FPRE.'search']);
+				$this->searchterm = stripslashes($_POST[SEARCHANDFILTER_FPRE.'search']);
 				
 				if($this->searchterm!="")
 				{
@@ -257,17 +396,41 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 					{
 						$this->urlparams .= "&";
 					}
-					$this->urlparams .= "s=".$this->searchterm;
+					$this->urlparams .= "s=".urlencode($this->searchterm);
 				}
 			}
 			
 			/* TAGS */
 			if((isset($_POST[SEARCHANDFILTER_FPRE.'post_tag']))&&($this->has_search_posted))
-			{//If the search form has been submitted with a new tag filter
-				$this->defaults[SEARCHANDFILTER_FPRE.'post_tag'] = esc_attr($_POST[SEARCHANDFILTER_FPRE.'post_tag']);
-				$tagobj = get_tag($this->defaults[SEARCHANDFILTER_FPRE.'post_tag']);
-				if(isset($tagobj->slug))
+			{
+				$the_post_tag = ($_POST[SEARCHANDFILTER_FPRE.'post_tag']);
+				
+				//make the post an array for easy looping
+				if(!is_array($_POST[SEARCHANDFILTER_FPRE.'post_tag']))
 				{
+					$post_tag[] = $the_post_tag;
+				}
+				else
+				{
+					$post_tag = $the_post_tag;
+				}
+				$tagarr = array();
+				
+				foreach ($post_tag as $tag)
+				{
+					$tag = esc_attr($tag);
+					$tagobj = get_tag($tag);
+					
+					if(isset($tagobj->slug))
+					{
+						$tagarr[] = $tagobj->slug;
+					}
+				}
+				
+				if(count($tagarr)>0)
+				{
+					$tags = implode("+",$tagarr);
+
 					if(!$this->hasqmark)
 					{
 						$this->urlparams .= "?";
@@ -277,10 +440,10 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 					{
 						$this->urlparams .= "&";
 					}
-					$this->urlparams .= "tag=".$tagobj->slug;
+					$this->urlparams .= "tag=".$tags;
+					
 				}
 			}
-			
 			
 			//now we have dealt with the all the special case variables - search, tags, categories
 			
@@ -288,9 +451,9 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 			//loop through the posts - double check that it is the search form that has been posted, otherwise we could be looping through the posts submitted from an entirely unrelated form
 			foreach($_POST as $key=>$val)
 			{
+				
 				if(!in_array($key, $this->frmreserved))
 				{//if the key is not in the reserved array (ie, on a custom taxonomy - not tags, categories, search term)
-					//echo ($key).": ".$val."<br />";
 					
 					// strip off all prefixes for custom taxonomies - we just want to do a redirect - no processing
 					if (strpos($key, SEARCHANDFILTER_FPRE) === 0)
@@ -298,11 +461,34 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 						$key = substr($key, strlen(SEARCHANDFILTER_FPRE));
 					}
 					
-					$temptax = esc_attr($val);
-					$taxobj = get_term_by('id',$temptax,$key);
+					$the_post_tax = $val;
 					
-					if(isset($taxobj->slug))
+					//make the post an array for easy looping
+					if(!is_array($val))
 					{
+						$post_tax[] = $the_post_tax;
+					}
+					else
+					{
+						$post_tax = $the_post_tax;
+					}
+					$taxarr = array();
+					
+					foreach ($post_tax as $tax)
+					{
+						$tax = esc_attr($tax);
+						$taxobj = get_term_by('id',$tax,$key);
+						
+						if(isset($taxobj->slug))
+						{
+							$taxarr[] = $taxobj->slug;
+						}
+					}
+					
+					if(count($taxarr)>0)
+					{
+						$tags = implode("+",$taxarr);
+
 						if(!$this->hasqmark)
 						{
 							$this->urlparams .= "?";
@@ -312,68 +498,92 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 						{
 							$this->urlparams .= "&";
 						}
-					
-						$this->urlparams .= $key."=".$taxobj->slug;
+						$this->urlparams .=  $key."=".$tags;
+						
 					}
-					
-					
-					//$this->defaults[$key] = $val;
-					//echo $key.": ".$val;
-					
 				}
 			}
 			
 			if($this->has_search_posted)
 			{//if the search has been posted, redirect to the newly formed url with all the right params
 			
-				wp_redirect( site_url().$this->urlparams );
+				wp_redirect( (home_url().$this->urlparams) );
 			}
-		
+			
 		}
 		
-		public function get_search_filter_form($search, $submitlabel, $taxonomies)
-		{ 
-			//ob_start();
+		public function get_search_filter_form($search, $submitlabel, $taxonomies, $types, $labels, $class)
+		{
 			$returnvar = '';
 			
+			$addclass = "";
+			if($class!="")
+			{
+				$addclass = ' '.$class;
+			}
+			
 			$returnvar .= '
-				<form action="" method="post" class="searchandfilter">
-					<p>
+				<form action="" method="post" class="searchandfilter'.$addclass.'">
+					<div>
 						<ul>';
 						
 						if($search==1)
 						{
-							$returnvar .=  '<li><input type="text" name="ofsearch" placeholder="Search &hellip;" value="'.$this->searchterm.'"></li>';
+							
+							$clean_searchterm = (esc_attr($this->searchterm));
+							
+							$returnvar .=  '<li><input type="text" name="ofsearch" placeholder="Search &hellip;" value="'.$clean_searchterm.'"></li>';
 						}
+						
+						$i = 0;
 						
 						foreach($taxonomies as $taxonomy)
 						{
 							
 							$taxonomydata = get_taxonomy($taxonomy);
-							//var_dump($taxonomydata);
+							
 							if($taxonomydata)
 							{
 								$returnvar .= "<li>";
+								
+								if($labels[$i]!="")
+								{
+									$returnvar .= "<h4>".$taxonomydata->labels->{$labels[$i]}."</h4>";
+								}
+								
 								$taxonomychildren = get_categories('name=of'.$taxonomy.'&taxonomy='.$taxonomy);
-								$returnvar .= $this->generate_dropdown($taxonomychildren, $taxonomy, $this->tagid, $taxonomydata->labels);
+								
+								if($types[$i]=="select")
+								{									
+									$returnvar .= $this->generate_select($taxonomychildren, $taxonomy, $this->tagid, $taxonomydata->labels);
+								}
+								else if($types[$i]=="checkbox")
+								{
+									$returnvar .= $this->generate_checkbox($taxonomychildren, $taxonomy, $this->tagid);
+								}
+								else if($types[$i]=="radio")
+								{
+									$returnvar .= $this->generate_radio($taxonomychildren, $taxonomy, $this->tagid, $taxonomydata->labels);
+								}
 								$returnvar .= "</li>";
 							}
+							$i++;
 							
 						}
-						
-						$returnvar .= "</ul>";
-					
+											
 						$returnvar .=
-						'<p>
+						'<li>
 							<input type="hidden" name="'.SEARCHANDFILTER_FPRE.'submitted" value="1">
 							<input type="submit" value="'.$submitlabel.'">
-						</p>
-					</p>
+						</li>';
+						
+						$returnvar .= "</ul>";
+					$returnvar .= '</div>
 				</form>';
 			
 			return $returnvar;
 		}
-		public function generate_dropdown($dropdata, $name, $currentid = 0, $labels = null)
+		public function generate_select($dropdata, $name, $currentid = 0, $labels = null)
 		{
 			$returnvar = "";
 			
@@ -381,11 +591,11 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 			if(isset($labels))
 			{
 				if($labels->all_items!="")
-				{
+				{//check to see if all items has been registered in taxonomy then use this label
 					$returnvar .= '<option class="level-0" value="0">'.$labels->all_items.'</option>';
 				}
 				else
-				{
+				{//check to see if all items has been registered in taxonomy then use this label with prefix of "All"
 					$returnvar .= '<option class="level-0" value="0">All '.$labels->name.'</option>';
 				}
 			}
@@ -393,17 +603,120 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 			foreach($dropdata as $dropdown)
 			{
 				$selected = "";
+				
 				if(isset($this->defaults[SEARCHANDFILTER_FPRE.$name]))
 				{
-					if($this->defaults[SEARCHANDFILTER_FPRE.$name]==$dropdown->term_id)
+					$defaults = $this->defaults[SEARCHANDFILTER_FPRE.$name];
+					
+					$noselected = count($defaults);
+					
+					if(($noselected>0)&&(is_array($defaults)))
 					{
-						$selected = ' selected="selected"';
+						foreach($defaults as $defaultid)
+						{
+							if($defaultid==$dropdown->term_id)
+							{
+								$selected = ' selected="selected"';
+							}
+						}
 					}
 				}
 				$returnvar .= '<option class="level-0" value="'.$dropdown->term_id.'"'.$selected.'>'.$dropdown->cat_name.'</option>';
 			
 			}
 			$returnvar .= "</select>";
+			
+			return $returnvar;
+		}
+		public function generate_checkbox($dropdata, $name, $currentid = 0, $labels = null)
+		{
+			$returnvar = "";
+			
+			foreach($dropdata as $dropdown)
+			{
+				$checked = "";
+				
+				//check a default has been set
+				if(isset($this->defaults[SEARCHANDFILTER_FPRE.$name]))
+				{
+					$defaults = $this->defaults[SEARCHANDFILTER_FPRE.$name];
+					
+					$noselected = count($defaults);
+					
+					if(($noselected>0)&&(is_array($defaults)))
+					{
+						foreach($defaults as $defaultid)
+						{
+							if($defaultid==$dropdown->term_id)
+							{
+								$checked = ' checked="checked"';
+							}
+						}
+					}
+				}
+				$returnvar .= '<label><input class="postform" type="checkbox" name="'.SEARCHANDFILTER_FPRE.$name.'[]" value="'.$dropdown->term_id.'"'.$checked.'> '.$dropdown->cat_name.'</label>';
+			
+			}
+			
+			return $returnvar;
+		}
+		
+		public function generate_radio($dropdata, $name, $currentid = 0, $labels = null)
+		{
+			$returnvar = "";
+			
+			if(isset($labels))
+			{
+				$checked = "";
+				if(isset($this->defaults[SEARCHANDFILTER_FPRE.$name]))
+				{
+					$defaults = $this->defaults[SEARCHANDFILTER_FPRE.$name];
+					$noselected = count($defaults);
+					
+					if($noselected==0)
+					{
+						$checked = ' checked="checked"';
+					}
+				}
+				else
+				{
+					$checked = ' checked="checked"';
+				}
+				if($labels->all_items!="")
+				{//check to see if all items has been registered in taxonomy then use this label
+					$returnvar .= '<label><input class="postform" type="radio" name="'.SEARCHANDFILTER_FPRE.$name.'[]" value="0"'.$checked.'> '.$labels->all_items.'</label>';
+				}
+				else
+				{//check to see if all items has been registered in taxonomy then use this label with prefix of "All"
+					$returnvar .= '<label><input class="postform" type="radio" name="'.SEARCHANDFILTER_FPRE.$name.'[]" value="0"'.$checked.'> '.$labels->name.'</label>';
+				}
+			}
+			
+			foreach($dropdata as $dropdown)
+			{
+				$checked = "";
+				
+				//check a default has been set
+				if(isset($this->defaults[SEARCHANDFILTER_FPRE.$name]))
+				{
+					$defaults = $this->defaults[SEARCHANDFILTER_FPRE.$name];
+					
+					$noselected = count($defaults);
+					
+					if(($noselected>0)&&(is_array($defaults)))
+					{
+						foreach($defaults as $defaultid)
+						{
+							if($defaultid==$dropdown->term_id)
+							{
+								$checked = ' checked="checked"';
+							}
+						}
+					}
+				}
+				$returnvar .= '<label><input class="postform" type="radio" name="'.SEARCHANDFILTER_FPRE.$name.'[]" value="'.$dropdown->term_id.'"'.$checked.'> '.$dropdown->cat_name.'</label>';
+			
+			}
 			
 			return $returnvar;
 		}

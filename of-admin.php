@@ -63,7 +63,7 @@
 			</div>';
 		
 		
-		echo "<h3>Variables</h3>";
+		echo "<h3>Arguments</h3>";
 		
 		//display table
 		$ofVarListTable = new OF_Variable_List_Table();
