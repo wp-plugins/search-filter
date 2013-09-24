@@ -5,7 +5,7 @@ Plugin URI: http://www.designsandcode.com/447/wordpress-search-filter-plugin-for
 Description: Search and Filtering system for Pages, Posts, Categories, Tags and Taxonomies
 Author: Designs & Code
 Author URI: http://www.designsandcode.com/
-Version: 1.1.0
+Version: 1.1.1
 Text Domain: searchandfilter
 License: GPLv2
 */
@@ -16,7 +16,7 @@ License: GPLv2
 * Set up Plugin Globals
 */
 if (!defined('SEARCHANDFILTER_VERSION_NUM'))
-    define('SEARCHANDFILTER_VERSION_NUM', '1.1.0');
+    define('SEARCHANDFILTER_VERSION_NUM', '1.1.1');
 	
 if (!defined('SEARCHANDFILTER_THEME_DIR'))
     define('SEARCHANDFILTER_THEME_DIR', ABSPATH . 'wp-content/themes/' . get_template());
@@ -506,7 +506,11 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 			
 			if($this->has_search_posted)
 			{//if the search has been posted, redirect to the newly formed url with all the right params
-			
+				
+				if($this->urlparams=="/")
+				{//check to see if url params are set, if not ("/") then add "?s=" to force load search results, without this it would redirect to the homepage, which may be a custom page with no blog items/results
+					$this->urlparams .= "?s=";
+				}
 				wp_redirect( (home_url().$this->urlparams) );
 			}
 			

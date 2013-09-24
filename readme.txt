@@ -4,7 +4,7 @@ Donate link:
 Tags: category, filter, taxonomy, search, wordpress
 Requires at least: 3.5
 Tested up to: 3.6
-Stable tag: 1.1.0
+Stable tag: 1.1.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -39,6 +39,9 @@ If you have used a plugin to register a custom taxonomy this info can normally b
 3. Minimal example of Search & Filter embedded in a widget
 
 == Changelog ==
+
+= 1.1.1 =
+* Fixed: when submitting an empty search/filter, "?s=" now gets appended to the url (an empty search) to force load a results page, previously this was redirecting to the homepage which does not work for many use cases
 
 = 1.1.0 =
 * Added support for checkboxes and radio buttons, with the option to control this for each individual taxonomy.
