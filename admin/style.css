@@ -54,3 +54,9 @@ pre .keyword
 {
 	color:#dd1144;
 }
+
+code.large
+{
+	font-size:12px;
+	line-height:20px;
+}

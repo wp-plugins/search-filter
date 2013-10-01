@@ -84,6 +84,84 @@ class OF_Taxonomy_List_Table extends WP_List_Table {
 	}
 }
 
+class OF_Post_Type_Table extends WP_List_Table {
+
+	private $post_types = array();
+	
+	function __construct()
+	{
+		global $status, $page;
+		parent::__construct(array(
+			'singular'=> 'wp_list_of_post_type', //Singular label
+			'plural' => 'wp_list_of_post_types', //plural label, also this well be one of the table css class
+			'ajax'	=> false //We won't support Ajax for this table
+		));
+				
+		$args = array('public'   => true);
+		$output = 'object'; // names or objects, note names is the default
+		$operator = 'and'; // 'and' or 'or'
+		
+		$post_types_objs = get_post_types( $args, $output, $operator ); 
+		
+		
+		
+		if($post_types_objs)
+		{
+			$counter = 0;
+			
+			foreach ( $post_types_objs  as $post_type )
+			{
+				if($post_type->name!="attachment")
+				{
+					$tempobject = array(
+						"ID"			=>	$counter,
+						"name"			=>	$post_type->name,
+						"label"			=>  $post_type->labels->name
+					);
+
+					$this->post_types[] = $tempobject;
+					
+				}
+			}
+		}
+	}
+	
+	function get_columns(){
+		$columns = array(
+			'name'			=> 'Name',
+			'label'			=> 'Label'
+		);
+		return $columns;
+	}
+	
+	function prepare_items() {
+		$columns = $this->get_columns();
+		$hidden = array();
+		$sortable = array();
+		$this->_column_headers = array($columns, $hidden, $sortable);
+		$this->items = $this->post_types;
+	}
+	
+	function column_default( $item, $column_name ) {
+		switch( $column_name )
+		{ 
+			case 'name':
+			case 'label':
+				return $item[ $column_name ];
+			default:
+				return print_r( $item, true ) ; //Show the whole array for troubleshooting purposes
+		}
+	}
+	
+	
+	function get_sortable_columns()
+	{
+		$sortable_columns = array(
+		);
+		return $sortable_columns;
+	}
+}
+
 
 
 class OF_Variable_List_Table extends WP_List_Table {
@@ -111,7 +189,7 @@ class OF_Variable_List_Table extends WP_List_Table {
 			"ID"			=> $counter,
 			"name"			=> "taxonomies",
 			"defaultval"	=> "&nbsp;",
-			"options"		=> "<em>Comma seperated list of any taxonomy names found in the Public Taxonomies table below.</em>",
+			"options"		=> "<em>Comma seperated list of any taxonomy names found in the Public Taxonomies table below.</em><br /><br /><strong>Update:</strong> You can now also add <code class='string'>post_type</code> to this list to display options for post types.",
 			"info"			=> "Example using all your public taxonomies (copy &amp; paste!):<pre><code class='string'>[searchandfilter taxonomies=\"".$fulltaxonomylist."\"]</code></pre>"
 		);
 		$counter++;
@@ -120,8 +198,8 @@ class OF_Variable_List_Table extends WP_List_Table {
 		$this->taxonomy_data[] = array(
 			"ID"			=> $counter,
 			"name"			=> "type",
-			"defaultval"	=> "select",
-			"options"		=> "<em>Comma seperated list of any of the types found below:</em><br /><br />select<br />checkbox<br />radio",
+			"defaultval"	=> "<code class='string large'>select</code>",
+			"options"		=> "<em>Comma seperated list of any of the types found below:</em><br /><br /><code class='string large'>select</code><br /><code class='string large'>checkbox</code><br /><code class='string large'>radio</code>",
 			"info"			=> "The order of values in this comma seperated list needs to match the taxonomies list. <br /><br />To display categories, tags and post formats, as a `select` dropdown, radio buttons and checkboxes, we must put them in the order we need: 
 			<br /><pre><code class='string'>[searchandfilter taxonomies=\"category,post_tag,post_format\" type=\"select,checkbox,radio\"]</code></pre>
 			If any taxonomies are left unspecified they well default to `select` dropdowns:
@@ -135,8 +213,8 @@ class OF_Variable_List_Table extends WP_List_Table {
 		$this->taxonomy_data[] = array(
 			"ID"			=> $counter,
 			"name"			=> "label",
-			"defaultval"	=> "name",
-			"options"		=> "0 - hide all labels<br /><br /> or <br /><br /><em>Comma seperated list of any of the types found below:</em><br /><br />name<br />singular_name<br />search_items<br />all_items<br /><em>*blank value</em>",
+			"defaultval"	=> "<code class='string large'>name</code>",
+			"options"		=> "<code class='string large'>0</code> - hide all labels<br /><br /> or <br /><br /><em>Comma seperated list of any of the types found below:</em><br /><br /><code class='string large'>name</code><br /><code class='string large'>singular_name</code><br /><code class='string large'>search_items</code><br /><code class='string large'>all_items</code><br /><em><code class='string large'>*blank value</code></em>",
 			"info"			=> "This list works the same as the `type` example above.<br /><br />
 			The different values that can be used are taken directly from the labels within a taxonomy object - so make sure you set these in your taxonomies if you wish to use them below.
 			<br /><br />Examples:<br /><br />
@@ -154,9 +232,21 @@ class OF_Variable_List_Table extends WP_List_Table {
 		
 		$this->taxonomy_data[] = array(
 			"ID"			=> $counter,
+			"name"			=> "post_types",
+			"defaultval"	=> "&nbsp;",
+			"options"		=> "<em>Comma seperated list of any post types (names) in the Public Post Types table below.</em><br /><br /> or set to: <br /><br /><code class='string large'>all</code>",
+			"info"			=> "List all post types you want the widget to search. Leave blank for default behavious without any post type restrictions.  This will use the default setting for post types you have in place which is often just <code>post</code> and <code>page</code><br /><br />
+			
+			All searches will be constrained to the post types you add here.<br /><br />
+			If <code>post_type</code> has been added to <code>taxonomies</code> list above, then it will pull its data from this list, a user will be able to choose from all post types listed here."
+		);
+		$counter++;
+		
+		$this->taxonomy_data[] = array(
+			"ID"			=> $counter,
 			"name"			=> "search",
-			"defaultval"	=> "1",
-			"options"		=> "0 - hide the search box<br />1 - display search box",
+			"defaultval"	=> "<code class='string large'>1</code>",
+			"options"		=> "<code class='string large'>0</code> - hide the search box<br /><code class='string large'>1</code> - display search box",
 			"info"			=> "The search box is shown by default, ommit from shortcode unless you specifically want to hide it - then set it with a value of 0."
 		);
 		$counter++;
@@ -174,7 +264,7 @@ class OF_Variable_List_Table extends WP_List_Table {
 		$this->taxonomy_data[] = array(
 			"ID"			=> $counter,
 			"name"			=> "submitlabel",
-			"defaultval"	=> "Submit",
+			"defaultval"	=> "<code class='string large'>Submit",
 			"options"		=> "<em>Any string</em>",
 			"info"			=> "This is the text label on the submit button."
 		);

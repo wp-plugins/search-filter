@@ -1,4 +1,8 @@
 /* Search & Filter Styles */
+body
+{
+	display:block;
+}
 .searchandfilter p
 {
 	margin-top: 1em;

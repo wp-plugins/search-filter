@@ -5,7 +5,7 @@ Plugin URI: http://www.designsandcode.com/447/wordpress-search-filter-plugin-for
 Description: Search and Filtering system for Pages, Posts, Categories, Tags and Taxonomies
 Author: Designs & Code
 Author URI: http://www.designsandcode.com/
-Version: 1.1.1
+Version: 1.1.2
 Text Domain: searchandfilter
 License: GPLv2
 */
@@ -16,7 +16,7 @@ License: GPLv2
 * Set up Plugin Globals
 */
 if (!defined('SEARCHANDFILTER_VERSION_NUM'))
-    define('SEARCHANDFILTER_VERSION_NUM', '1.1.1');
+    define('SEARCHANDFILTER_VERSION_NUM', '1.1.2');
 	
 if (!defined('SEARCHANDFILTER_THEME_DIR'))
     define('SEARCHANDFILTER_THEME_DIR', ABSPATH . 'wp-content/themes/' . get_template());
@@ -64,8 +64,14 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 		public function __construct()
 		{
 			// Set up reserved taxonomies
-			$this->frmreserved = array(SEARCHANDFILTER_FPRE."category", SEARCHANDFILTER_FPRE."search", SEARCHANDFILTER_FPRE."post_tag", SEARCHANDFILTER_FPRE."submitted");
-			$this->frmqreserved = array(SEARCHANDFILTER_FPRE."category_name", SEARCHANDFILTER_FPRE."s", SEARCHANDFILTER_FPRE."tag", SEARCHANDFILTER_FPRE."submitted"); //same as reserved
+			$this->frmreserved = array(SEARCHANDFILTER_FPRE."category", SEARCHANDFILTER_FPRE."search", SEARCHANDFILTER_FPRE."post_tag", SEARCHANDFILTER_FPRE."submitted", SEARCHANDFILTER_FPRE."post_types");
+			$this->frmqreserved = array(SEARCHANDFILTER_FPRE."category_name", SEARCHANDFILTER_FPRE."s", SEARCHANDFILTER_FPRE."tag", SEARCHANDFILTER_FPRE."submitted", SEARCHANDFILTER_FPRE."post_types"); //same as reserved
+			
+			//add query vars
+			add_filter('query_vars', array($this,'add_queryvars') );
+			
+			//filter post type if it is set
+			add_filter('pre_get_posts', array($this,'filter_query_post_types'));
 			
 			// Add shortcode support for widgets  
 			add_shortcode('searchandfilter', array($this, 'shortcode'));  
@@ -103,13 +109,22 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 				'submitlabel' => "Submit",
 				'type' => "",
 				'label' => "default",
-				'class' => ""
+				'class' => "",
+				'post_types' => "",
+				'show_post_types' => "0"
 			), $atts));
 			
 			
 			$taxonomies = explode(",",$taxonomies);
+			
+			if($post_types!="")
+			{
+				$post_types = explode(",",$post_types);
+			}
+			
 			$this->taxonomylist = $taxonomies;
 			$notaxonomies = count($taxonomies);
+			
 			
 			//set default types for each taxonomy
 			$types = explode(",",$type);
@@ -210,8 +225,48 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 			
 			//set all form defaults / dropdowns etc
 			$this->set_defaults();
-						
-			return $this->get_search_filter_form($search, $submitlabel, $taxonomies, $types, $labels, $class);
+			
+			return $this->get_search_filter_form($search, $submitlabel, $taxonomies, $types, $labels, $post_types, $class);
+		}
+		
+		
+		function add_queryvars( $qvars )
+		{
+			$qvars[] = 'post_types';
+			return $qvars;
+		}
+		
+		function filter_query_post_types($query)
+		{
+			global $wp_query;
+
+			if(isset($wp_query->query['post_types']))
+			{
+				$search_all = false;
+				
+				$post_types = explode("+",esc_attr(urlencode($wp_query->query['post_types'])));
+				if(isset($post_types[0]))
+				{
+					if(count($post_types)==1)
+					{
+						if($post_types[0]=="all")
+						{
+							$search_all = true;
+						}
+					}
+				}
+				if($search_all)
+				{
+					$post_types = get_post_types( '', 'names' ); 
+					$query->set('post_type', $post_types); //here we set the post types that we want WP to search
+				}
+				else
+				{
+					$query->set('post_type', $post_types); //here we set the post types that we want WP to search
+				}
+			}
+			
+			return $query;
 		}
 		
 		/* 
@@ -220,9 +275,12 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 		public function set_defaults()
 		{
 			global $wp_query;
+			
 			/*var_dump($wp_query->query['category_name']);
 			var_dump($wp_query->query['tag']);*/
-			//var_dump($wp_query->query);
+			/*echo "<pre>";
+			var_dump($wp_query->query);
+			echo "</pre>";*/
 			
 			$categories = array();
 			//if(is_category())
@@ -272,6 +330,7 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 			//}
 			$this->defaults[SEARCHANDFILTER_FPRE.'post_tag'] = $tags;
 			
+			$taxs = array();
 			//loop through all the query vars
 			foreach($wp_query->query as $key=>$val)
 			{
@@ -298,6 +357,13 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 					}
 				}
 			}
+			
+			$post_types = array();
+			if(isset($wp_query->query['post_types']))
+			{
+				$post_types = explode("+",esc_attr(urlencode($wp_query->query['post_types'])));
+			}
+			$this->defaults[SEARCHANDFILTER_FPRE.'post_types'] = $post_types;
 			
 			
 			//now we may be on a taxonomy page
@@ -449,58 +515,104 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 			
 			/* TAXONOMIES */
 			//loop through the posts - double check that it is the search form that has been posted, otherwise we could be looping through the posts submitted from an entirely unrelated form
-			foreach($_POST as $key=>$val)
+			if($this->has_search_posted)
 			{
-				
-				if(!in_array($key, $this->frmreserved))
-				{//if the key is not in the reserved array (ie, on a custom taxonomy - not tags, categories, search term)
-					
-					// strip off all prefixes for custom taxonomies - we just want to do a redirect - no processing
-					if (strpos($key, SEARCHANDFILTER_FPRE) === 0)
-					{
-						$key = substr($key, strlen(SEARCHANDFILTER_FPRE));
-					}
-					
-					$the_post_tax = $val;
-					
-					//make the post an array for easy looping
-					if(!is_array($val))
-					{
-						$post_tax[] = $the_post_tax;
-					}
-					else
-					{
-						$post_tax = $the_post_tax;
-					}
-					$taxarr = array();
-					
-					foreach ($post_tax as $tax)
-					{
-						$tax = esc_attr($tax);
-						$taxobj = get_term_by('id',$tax,$key);
+				foreach($_POST as $key=>$val)
+				{
+					if(!in_array($key, $this->frmreserved))
+					{//if the key is not in the reserved array (ie, on a custom taxonomy - not tags, categories, search term)
 						
-						if(isset($taxobj->slug))
+						// strip off all prefixes for custom taxonomies - we just want to do a redirect - no processing
+						if (strpos($key, SEARCHANDFILTER_FPRE) === 0)
 						{
-							$taxarr[] = $taxobj->slug;
+							$key = substr($key, strlen(SEARCHANDFILTER_FPRE));
 						}
-					}
-					
-					if(count($taxarr)>0)
-					{
-						$tags = implode("+",$taxarr);
-
-						if(!$this->hasqmark)
+						
+						$the_post_tax = $val;
+						
+						//make the post an array for easy looping
+						if(!is_array($val))
 						{
-							$this->urlparams .= "?";
-							$this->hasqmark = true;
+							$post_tax[] = $the_post_tax;
 						}
 						else
 						{
-							$this->urlparams .= "&";
+							$post_tax = $the_post_tax;
 						}
-						$this->urlparams .=  $key."=".$tags;
+						$taxarr = array();
 						
+						foreach ($post_tax as $tax)
+						{
+							$tax = esc_attr($tax);
+							$taxobj = get_term_by('id',$tax,$key);
+							
+							if(isset($taxobj->slug))
+							{
+								$taxarr[] = $taxobj->slug;
+							}
+						}
+						
+						if(count($taxarr)>0)
+						{
+							$tags = implode("+",$taxarr);
+
+							if(!$this->hasqmark)
+							{
+								$this->urlparams .= "?";
+								$this->hasqmark = true;
+							}
+							else
+							{
+								$this->urlparams .= "&";
+							}
+							$this->urlparams .=  $key."=".$tags;
+							
+						}
 					}
+				}
+			}
+			
+			/* POST TYPES */
+			if((isset($_POST[SEARCHANDFILTER_FPRE.'post_types']))&&($this->has_search_posted))
+			{
+				
+				$the_post_types = ($_POST[SEARCHANDFILTER_FPRE.'post_types']);
+				
+				//make the post an array for easy looping
+				if(!is_array($the_post_types))
+				{
+					$post_types_arr[] = $the_post_types;
+				}
+				else
+				{
+					$post_types_arr = $the_post_types;
+				}
+				
+				$num_post_types = count($post_types_arr);
+				
+				for($i=0; $i<$num_post_types; $i++)
+				{
+					if($post_types_arr[$i]=="0")
+					{
+						$post_types_arr[$i] = "all";
+					}
+				}
+				
+				if(count($post_types_arr)>0)
+				{
+					$post_types = implode("+",$post_types_arr);
+
+					if(!$this->hasqmark)
+					{
+						$this->urlparams .= "?";
+						$this->hasqmark = true;
+					}
+					else
+					{
+						$this->urlparams .= "&";
+					}
+					$this->urlparams .= "post_types=".$post_types;
+
 				}
 			}
 			
@@ -516,7 +628,7 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 			
 		}
 		
-		public function get_search_filter_form($search, $submitlabel, $taxonomies, $types, $labels, $class)
+		public function get_search_filter_form($search, $submitlabel, $taxonomies, $types, $labels, $post_types, $class)
 		{
 			$returnvar = '';
 			
@@ -527,15 +639,27 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 			}
 			
 			$returnvar .= '
-				<form action="" method="post" class="searchandfilter'.$addclass.'">
-					<div>
+				<form action="" method="post" class="searchandfilter'.$addclass.'">				
+					<div>';
+					
+					if(!in_array("post_types", $taxonomies))
+					{//then the user has not added it to the taxonomies list so the user does not want a post types drop down... so add (if any) the post types to a hidden attribute
+						
+						if(($post_types!="")&&(is_array($post_types)))
+						{
+							foreach($post_types as $post_type)
+							{
+								$returnvar .= "<input type=\"hidden\" name=\"ofpost_types[]\" value=\"".$post_type."\" />";
+							}
+						}
+					}
+					$returnvar .= '
 						<ul>';
 						
 						if($search==1)
 						{
 							
 							$clean_searchterm = (esc_attr($this->searchterm));
-							
 							$returnvar .=  '<li><input type="text" name="ofsearch" placeholder="Search &hellip;" value="'.$clean_searchterm.'"></li>';
 						}
 						
@@ -544,22 +668,89 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 						foreach($taxonomies as $taxonomy)
 						{
 							
-							$taxonomydata = get_taxonomy($taxonomy);
-							
-							if($taxonomydata)
-							{
+							if($taxonomy == "post_types")
+							{//build taxonomy array
+								
+								$taxonomychildren = array();
+								$post_type_count = count($post_types);
+								
+								//then check the post types array
+								if(is_array($post_types))
+								{
+									if(($post_type_count==1)&&($post_types[0]=="all"))
+									{
+										$args = array('public'   => true);
+										$output = 'object'; // names or objects, note names is the default
+										$operator = 'and'; // 'and' or 'or'
+										
+										$post_types_objs = get_post_types( $args, $output, $operator ); 
+										
+										$post_types = array();
+										
+										foreach ( $post_types_objs  as $post_type )
+										{
+											if($post_type->name!="attachment")
+											{
+												$tempobject = array();
+												$tempobject['term_id'] = $post_type->name;
+												$tempobject['cat_name'] = $post_type->labels->name;
+												
+												$taxonomychildren[] = (object)$tempobject;
+												
+												$post_types[] = $post_type->name;
+												
+											}
+										}
+										$post_type_count = count($post_types_objs);
+
+									}
+									else
+									{
+										foreach($post_types as $post_type)
+										{
+											//var_dump(get_post_type_object( $post_type ));
+											$post_type_data = get_post_type_object( $post_type );
+											
+											if($post_type_data)
+											{
+												$tempobject = array();
+												$tempobject['term_id'] = $post_type;
+												$tempobject['cat_name'] = $post_type_data->labels->name;
+												
+												$taxonomychildren[] = (object)$tempobject;
+											}
+										}
+									}
+								}
+								$taxonomychildren = (object)$taxonomychildren;
+								
 								$returnvar .= "<li>";
+								
+								$post_type_labels = array();
+								$post_type_labels['name'] = "Post Types";
+								$post_type_labels['singular_name'] = "Post Type";
+								$post_type_labels['search_items'] = "Search Post Types";
+								$post_type_labels['all_items'] = "All Post Types";
+								
+								$post_type_labels = (object)$post_type_labels;
 								
 								if($labels[$i]!="")
 								{
-									$returnvar .= "<h4>".$taxonomydata->labels->{$labels[$i]}."</h4>";
+									$returnvar .= "<h4>".$post_type_labels->name."</h4>";
 								}
 								
-								$taxonomychildren = get_categories('name=of'.$taxonomy.'&taxonomy='.$taxonomy);
+								if($post_type_count>0)
+								{
+									$defaultval = implode("+",$post_types);
+								}
+								else
+								{
+									$defaultval = "all";
+								}
 								
 								if($types[$i]=="select")
 								{									
-									$returnvar .= $this->generate_select($taxonomychildren, $taxonomy, $this->tagid, $taxonomydata->labels);
+									$returnvar .= $this->generate_select($taxonomychildren, $taxonomy, $this->tagid, $post_type_labels, $defaultval);
 								}
 								else if($types[$i]=="checkbox")
 								{
@@ -567,9 +758,40 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 								}
 								else if($types[$i]=="radio")
 								{
-									$returnvar .= $this->generate_radio($taxonomychildren, $taxonomy, $this->tagid, $taxonomydata->labels);
+									$returnvar .= $this->generate_radio($taxonomychildren, $taxonomy, $this->tagid, $post_type_labels, $defaultval);
 								}
 								$returnvar .= "</li>";
+								
+							}
+							else
+							{
+								$taxonomydata = get_taxonomy($taxonomy);
+								
+								if($taxonomydata)
+								{
+									$returnvar .= "<li>";
+									
+									if($labels[$i]!="")
+									{
+										$returnvar .= "<h4>".$taxonomydata->labels->{$labels[$i]}."</h4>";
+									}
+									
+									$taxonomychildren = get_categories('name=of'.$taxonomy.'&taxonomy='.$taxonomy);
+									
+									if($types[$i]=="select")
+									{									
+										$returnvar .= $this->generate_select($taxonomychildren, $taxonomy, $this->tagid, $taxonomydata->labels);
+									}
+									else if($types[$i]=="checkbox")
+									{
+										$returnvar .= $this->generate_checkbox($taxonomychildren, $taxonomy, $this->tagid);
+									}
+									else if($types[$i]=="radio")
+									{
+										$returnvar .= $this->generate_radio($taxonomychildren, $taxonomy, $this->tagid, $taxonomydata->labels);
+									}
+									$returnvar .= "</li>";
+								}
 							}
 							$i++;
 							
@@ -587,7 +809,7 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 			
 			return $returnvar;
 		}
-		public function generate_select($dropdata, $name, $currentid = 0, $labels = null)
+		public function generate_select($dropdata, $name, $currentid = 0, $labels = null, $defaultval = "0")
 		{
 			$returnvar = "";
 			
@@ -596,11 +818,11 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 			{
 				if($labels->all_items!="")
 				{//check to see if all items has been registered in taxonomy then use this label
-					$returnvar .= '<option class="level-0" value="0">'.$labels->all_items.'</option>';
+					$returnvar .= '<option class="level-0" value="'.$defaultval.'">'.$labels->all_items.'</option>';
 				}
 				else
 				{//check to see if all items has been registered in taxonomy then use this label with prefix of "All"
-					$returnvar .= '<option class="level-0" value="0">All '.$labels->name.'</option>';
+					$returnvar .= '<option class="level-0" value="'.$defaultval.'">All '.$labels->name.'</option>';
 				}
 			}
 			
@@ -614,7 +836,7 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 					
 					$noselected = count($defaults);
 					
-					if(($noselected>0)&&(is_array($defaults)))
+					if(($noselected==1)&&(is_array($defaults))) //there should never be more than 1 default in a select, if there are then don't set any, user is obviously searching multiple values, in the case of a select this must be "all"
 					{
 						foreach($defaults as $defaultid)
 						{
@@ -632,10 +854,9 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 			
 			return $returnvar;
 		}
-		public function generate_checkbox($dropdata, $name, $currentid = 0, $labels = null)
+		public function generate_checkbox($dropdata, $name, $currentid = 0, $labels = null, $defaultval = '')
 		{
 			$returnvar = "";
-			
 			foreach($dropdata as $dropdown)
 			{
 				$checked = "";
@@ -665,7 +886,7 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 			return $returnvar;
 		}
 		
-		public function generate_radio($dropdata, $name, $currentid = 0, $labels = null)
+		public function generate_radio($dropdata, $name, $currentid = 0, $labels = null, $defaultval = "0")
 		{
 			$returnvar = "";
 			
@@ -681,18 +902,35 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 					{
 						$checked = ' checked="checked"';
 					}
+					else if($noselected==1)
+					{
+						if($this->defaults[SEARCHANDFILTER_FPRE.$name][0]==$defaultval)
+						{
+							$checked = ' checked="checked"';
+						}
+					}
 				}
 				else
 				{
 					$checked = ' checked="checked"';
 				}
+				
+				if(isset($this->defaults[SEARCHANDFILTER_FPRE.$name]))
+				{
+					$defaults = $this->defaults[SEARCHANDFILTER_FPRE.$name];
+					if(count($defaults)>1)
+					{//then we are dealing with multiple defaults - this means mutliple radios are selected, this is only possible with "ALL" so set as default.
+						$checked = ' checked="checked"';
+					}
+				}
+				
 				if($labels->all_items!="")
 				{//check to see if all items has been registered in taxonomy then use this label
-					$returnvar .= '<label><input class="postform" type="radio" name="'.SEARCHANDFILTER_FPRE.$name.'[]" value="0"'.$checked.'> '.$labels->all_items.'</label>';
+					$returnvar .= '<label><input class="postform" type="radio" name="'.SEARCHANDFILTER_FPRE.$name.'[]" value="'.$defaultval.'"'.$checked.'> '.$labels->all_items.'</label>';
 				}
 				else
 				{//check to see if all items has been registered in taxonomy then use this label with prefix of "All"
-					$returnvar .= '<label><input class="postform" type="radio" name="'.SEARCHANDFILTER_FPRE.$name.'[]" value="0"'.$checked.'> '.$labels->name.'</label>';
+					$returnvar .= '<label><input class="postform" type="radio" name="'.SEARCHANDFILTER_FPRE.$name.'[]" value="'.$defaultval.'"'.$checked.'> '.$labels->name.'</label>';
 				}
 			}
 			
@@ -707,7 +945,7 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 					
 					$noselected = count($defaults);
 					
-					if(($noselected>0)&&(is_array($defaults)))
+					if(($noselected==1)&&(is_array($defaults)))
 					{
 						foreach($defaults as $defaultid)
 						{
