@@ -4,7 +4,7 @@ Donate link:
 Tags: category, filter, taxonomy, search, wordpress, post type, post date
 Requires at least: 3.5
 Tested up to: 3.8
-Stable tag: 1.2.1
+Stable tag: 1.2.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -33,6 +33,15 @@ The documentation has been updated to include examples almost all configurable o
 4. Example of Search & Filter using a post type filter
 
 == Changelog ==
+
+= 1.2.2 =
+* Added support for multi selects - use `multiselect` as the type for your field
+* Added support for AND & OR operators when using checkboxes or multiselects - use the `operators` argument with allowed values of `and` & `or`
+* Force load search template when search is blank, don't include when search field is not included in shortcode
+* Fixed an issue with navigation disappearing when using post_types
+
+= 1.2.1 =
+* Version Bump - bad commit
 
 = 1.2.0 =
 * WARNING - this update includes some major changes to shortcode construction,  do not upgrade until you have read how this will affect your setup - updating should be easy.
@@ -88,9 +97,9 @@ The documentation has been updated to include examples almost all configurable o
 
 == Description ==
 
-Search & Filter is a simple search and filtering plugin for WordPress.  It is essentially an advancement of the WordPress search box, adding taxonomy and post type filters to really refine your searches.
+Search & Filter is a simple search and filtering plugin for WordPress.  It is essentially an advancement of the WordPress search box, adding taxonomy, post type and post date filters to really refine your searches.
 
-You can search by Category, Tag, Custom Taxonomy, Post Type or any combination of these easily - you can even remove the search box and simply use it as a filtering system for your posts and pages.  Taxonomies and Post Types can be displayed as dropdown selects, checkboxes or radio buttons.
+You can search by Category, Tag, Custom Taxonomy, Post Type, Post Date or any combination of these easily - you can even remove the search box and simply use it as a filtering system for your posts and pages.  Taxonomies and Post Types can be displayed as dropdown selects, checkboxes, radio buttons or multi selects.
 
 = Links =
 
