@@ -4,7 +4,7 @@ Donate link:
 Tags: category, filter, taxonomy, search, wordpress, post type, post date
 Requires at least: 3.5
 Tested up to: 3.8
-Stable tag: 1.2.2
+Stable tag: 1.2.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -33,6 +33,13 @@ The documentation has been updated to include examples almost all configurable o
 4. Example of Search & Filter using a post type filter
 
 == Changelog ==
+
+= 1.2.3 =
+* Added arguement `all_items_labels` which allows for support for custom `all_items` labels in taxonomies, categories, post tags and post types when using `select` and `radio` types - the default text displaying "All Categories" for example can now be defined using `all_items_labels`
+* Added `show_count` to arguments - this shows how many posts are in a particular term, in brackets after the term name - works only for categories, tags and taxonomies
+* Fixed a bug when using when using "all post types" and it displaying no results
+* Reverted behaviour from 1.2.2 - no longer force load search template when search is blank - let WP handle it again
+* Added argument `add_search_param` - setting it to `1` will force a "?s=" or "&s=" to be added to the url even when the search is blank - in some circumstances this will force load the search template, instead of other WP templates, such as taxonomy or category templates
 
 = 1.2.2 =
 * Added support for multi selects - use `multiselect` as the type for your field
