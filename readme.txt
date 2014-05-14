@@ -117,9 +117,27 @@ Search & Filter is a simple search and filtering plugin for WordPress.  It is es
 
 You can search by Category, Tag, Custom Taxonomy, Post Type, Post Date or any combination of these easily - you can even remove the search box and simply use it as a filtering system for your posts and pages.  Taxonomies and Post Types can be displayed as dropdown selects, checkboxes, radio buttons or multi selects.
 
+
 = Links =
 
 * [Search & Filter Documentation](http://docs.designsandcode.com/search-filter/)
 * [Search & Filter Discussion](http://www.designsandcode.com/447/wordpress-search-filter-plugin-for-taxonomies/)
+
+
+= NEW: Search & Filter Pro =
+
+* Search **Custom Fields**, **Post Meta**, **Authors**, **Post Types**, **Post Dates**, **Taxonomies**, **Tags**, **Categories**
+* jQuery range slider & date pickers
+* Drag & Drop editor
+* Use custom templates
+* Create as many fields and different search forms as you like
+* Use for your online shop - tested and compatible with **WooCommerce**, **WP eCommerce**, **Easy Digital Downloads**
+* Place anywhere in your themes and posts using shortcodes and widgets
+* Works with **WPML**
+* **Extremely easy to use admin UI**, fully integrated with WP 3.8+ - looks native
+* **Dedicated Support**
+
+[View screenshots and more here](http://www.designsandcode.com/wordpress-plugins/search-filter-pro/)
+
 
 
