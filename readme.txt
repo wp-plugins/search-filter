@@ -12,7 +12,7 @@ Search and Filtering for Custom Posts, Categories, Tags, Taxonomies, Post Dates 
 
 == Installation ==
 
-1. Upload the entire `search-filter` folder to the `/wp-content/plugins/` directory.
+1. Upload the entire `search-filter` folder to the `/wp-content/plugins/` directory..
 1. Activate the plugin through the 'Plugins' menu in WordPress.
 
 You will find 'Search & Filter' menu in your WordPress admin panel.
