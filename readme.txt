@@ -121,7 +121,9 @@ You can search by Category, Tag, Custom Taxonomy, Post Type, Post Date or any co
 
 = New: Search & Filter Pro =
 
+
 * Search **Custom Fields**, **Post Meta**, **Authors**, Post Types, Post Dates, Taxonomies, Tags, Categories
+* Use **AJAX** to display results  - no more page reloading!
 * jQuery range slider & date pickers
 * Drag & Drop editor
 * Use custom templates
