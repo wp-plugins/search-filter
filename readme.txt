@@ -120,8 +120,9 @@ You can search by Category, Tag, Custom Taxonomy, Post Type, Post Date or any co
 **Links:** [Search & Filter Documentation](http://docs.designsandcode.com/search-filter/) | [Search & Filter Discussion](http://www.designsandcode.com/447/wordpress-search-filter-plugin-for-taxonomies/)
 
 = New: Search & Filter Pro =
+ 
 
-
+* [View live demo >>](http://demo.designsandcode.com/searchandfilterpro/product-search/)
 * Search **Custom Fields**, **Post Meta**, **Authors**, Post Types, Post Dates, Taxonomies, Tags, Categories
 * Use **AJAX** to display results  - no more page reloading!
 * jQuery range slider & date pickers
@@ -133,7 +134,7 @@ You can search by Category, Tag, Custom Taxonomy, Post Type, Post Date or any co
 * Works with **WPML**
 * Extremely easy to use admin UI, fully integrated with WP 3.8+ - looks native
 * **Dedicated Support**
-* [View screenshots and more here](http://www.designsandcode.com/wordpress-plugins/search-filter-pro/)
+* [More info >>](http://www.designsandcode.com/wordpress-plugins/search-filter-pro/)
 
 
 
