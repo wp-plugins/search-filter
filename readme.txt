@@ -129,6 +129,7 @@ You can search by Category, Tag, Custom Taxonomy, Post Type, Post Date or any co
 * Drag & Drop editor
 * Use custom templates
 * Create as many fields and different search forms as you like
+* Use for blogs, reviews sites, news sites, property sites and more.
 * Use for your online shop - tested and compatible with **WooCommerce**, **WP eCommerce**, **Easy Digital Downloads**
 * Place anywhere in your themes and posts using shortcodes and widgets
 * Works with **WPML**
