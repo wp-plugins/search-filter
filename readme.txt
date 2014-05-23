@@ -122,7 +122,7 @@ You can search by Category, Tag, Custom Taxonomy, Post Type, Post Date or any co
 = New: Search & Filter Pro =
  
 
-* View live demo >> [demo 1](http://demo.designsandcode.com/sfpro-movie-reviews/) |  [demo 2](http://demo.designsandcode.com/sfpro-woo-mystile/product-search/) 
+* View live demo >> [demo 1](http://demo.designsandcode.com/sfpro-movie-reviews/) |  [demo 2](http://demo.designsandcode.com/sfpro-woo-mystile/product-search/)  |  [video](http://www.designsandcode.com/wordpress-plugins/search-filter-pro/) 
 * Search **Custom Fields**, **Post Meta**, **Authors**, Post Types, Post Dates, Taxonomies, Tags, Categories
 * Use **AJAX** to display results  - no more page reloading!
 * jQuery range slider & date pickers
