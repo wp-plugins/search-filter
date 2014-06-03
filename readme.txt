@@ -125,7 +125,9 @@ You can search by Category, Tag, Custom Taxonomy, Post Type, Post Date or any co
 * View live demo >> [demo 1](http://demo.designsandcode.com/sfpro-movie-reviews/) |  [demo 2](http://demo.designsandcode.com/sfpro-woo-mystile/product-search/)  |  [video](http://www.designsandcode.com/wordpress-plugins/search-filter-pro/) 
 * Search **Custom Fields**, **Post Meta**, **Authors**, Post Types, Post Dates, Taxonomies, Tags, Categories
 * Use **AJAX** to display results  - no more page reloading!
-* jQuery range slider & date pickers
+* Search **Post Meta/Custom Fields** with checkboxes, radio buttons, dropdowns, multiselects or comboboxes
+* jQuery range slider, date pickers and **auto-complete comboboxes** for selects and multiselects
+* Order Results Field - users can order results by meta value, Post ID, author, title, name, date, date modified, parent ID, random, comment count and menu order
 * Drag & Drop editor
 * Use custom templates
 * Create as many fields and different search forms as you like
@@ -133,7 +135,8 @@ You can search by Category, Tag, Custom Taxonomy, Post Type, Post Date or any co
 * Use for your online shop - tested and compatible with **WooCommerce**, **WP eCommerce**, **Easy Digital Downloads**
 * Place anywhere in your themes and posts using shortcodes and widgets
 * Works with **WPML**
-* Extremely easy to use admin UI, fully integrated with WP 3.8+ - looks native
+* Works with **Advanced Custom Fields**
+* Extremely easy to use admin UI, fully integrated with WP 3.8+
 * **Dedicated Support**
 * [More info >>](http://www.designsandcode.com/wordpress-plugins/search-filter-pro/)
 
