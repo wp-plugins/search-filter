@@ -5,7 +5,7 @@ Plugin URI: http://www.designsandcode.com/447/wordpress-search-filter-plugin-for
 Description: Search and Filtering system for Pages, Posts, Categories, Tags and Taxonomies
 Author: Designs & Code
 Author URI: http://www.designsandcode.com/
-Version: 1.2.5
+Version: 1.2.6
 Text Domain: searchandfilter
 License: GPLv2
 */
@@ -16,7 +16,7 @@ License: GPLv2
 * Set up Plugin Globals
 */
 if (!defined('SEARCHANDFILTER_VERSION_NUM'))
-    define('SEARCHANDFILTER_VERSION_NUM', '1.2.5');
+    define('SEARCHANDFILTER_VERSION_NUM', '1.2.6');
 
 if (!defined('SEARCHANDFILTER_THEME_DIR'))
     define('SEARCHANDFILTER_THEME_DIR', ABSPATH . 'wp-content/themes/' . get_template());
@@ -1234,7 +1234,6 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 				{
 					foreach($post_types as $post_type)
 					{
-						//var_dump(get_post_type_object( $post_type ));
 						$post_type_data = get_post_type_object( $post_type );
 
 						if($post_type_data)
@@ -1317,7 +1316,7 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 				}
 
 				$args = array(
-					'name' => SF_FPRE . $taxonomy,
+					'sf_name' => SF_FPRE . $taxonomy,
 					'taxonomy' => $taxonomy,
 					'hierarchical' => false,
 					'child_of' => 0,
@@ -1373,9 +1372,9 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 				{
 					$args['title_li'] = '';
 					$args['defaults'] = "";
-					if(isset($this->defaults[$args['name']]))
+					if(isset($this->defaults[$args['sf_name']]))
 					{
-						$args['defaults'] = $this->defaults[$args['name']];
+						$args['defaults'] = $this->defaults[$args['sf_name']];
 					}
 					//$args['show_option_all'] = 0;
 					
@@ -1385,9 +1384,10 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 				{
 					$args['title_li'] = '';
 					$args['defaults'] = "";
-					if(isset($this->defaults[$args['name']]))
+					
+					if(isset($this->defaults[$args['sf_name']]))
 					{
-						$args['defaults'] = $this->defaults[$args['name']];
+						$args['defaults'] = $this->defaults[$args['sf_name']];
 					}
 					
 					$returnvar .= $this->generate_wp_radio($args, $taxonomy, $this->tagid, $taxonomydata->labels);
@@ -1396,6 +1396,7 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 				{
 					$args['title_li'] = '';
 					$args['defaults'] = "";
+					
 					if(isset($this->defaults[$args['name']]))
 					{
 						$args['defaults'] = $this->defaults[$args['name']];
@@ -1429,6 +1430,8 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 		//use wp array walker to enable hierarchical display
 		public function generate_wp_dropdown($args, $name, $currentid = 0, $labels = null, $defaultval = "0")
 		{
+			$args['name'] = $args['sf_name'];
+			
 			$returnvar = '';
 			
 			if($args['show_option_all_sf']=="")
@@ -1461,7 +1464,7 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 		//use wp array walker to enable hierarchical display
 		public function generate_wp_multiselect($args, $name, $currentid = 0, $labels = null, $defaultval = "0")
 		{
-			$returnvar = '<select multiple="multiple" name="'.$args['name'].'[]" class="postform">';
+			$returnvar = '<select multiple="multiple" name="'.$args['sf_name'].'[]" class="postform">';
 			$returnvar .= walk_taxonomy('multiselect', $args);
 			$returnvar .= "</select>";
 			
@@ -1493,7 +1496,7 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 			
 			$checked = ($defaultval=="0") ? " checked='checked'" : "";
 			$returnvar = '<ul>';
-			$returnvar .= '<li>'."<label><input type='radio' name='".$args['name']."[]' value='0'$checked /> ".$show_option_all."</label>".'</li>';
+			$returnvar .= '<li>'."<label><input type='radio' name='".$args['sf_name']."[]' value='0'$checked /> ".$show_option_all."</label>".'</li>';
 			$returnvar .= walk_taxonomy('radio', $args);
 			$returnvar .= "</ul>";
 			
@@ -1693,7 +1696,9 @@ if ( ! class_exists( 'SearchAndFilter' ) )
 
 function walk_taxonomy( $type = "checkbox", $args = array() ) {
 
-	$args['walker'] = new Taxonomy_Walker($type, $args['name']);
+	$args['walker'] = new Taxonomy_Walker($type, $args['sf_name']);
+	
+	//unset($args['sf_name']);
 	
 	$output = wp_list_categories($args);
 	if ( $output )
