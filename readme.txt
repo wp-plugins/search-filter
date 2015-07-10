@@ -35,7 +35,7 @@ The documentation has been updated to include examples almost all configurable o
 == Changelog ==
 
 = 1.2.7 =
-* Fixed - fix for new taxonomy rewrites and when using checkboxes
+* Fixed - fix for new taxonomy rewrites and problems with multiple selection when using checkboxes
 * Fixed - added previously hidden `multiselect` field type
 
 = 1.2.6 =
